@@ -108,7 +108,7 @@
 						<index>true</index>
 						<manifest>
 							<addClasspath>true</addClasspath>
-							<mainClass>org.barteks2x.freeminleauncher.Main</mainClass>
+							<mainClass>org.barteks2x.freeminelauncher.Main</mainClass>
 							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
 							<addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
 						</manifest>
