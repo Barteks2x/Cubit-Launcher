@@ -52,6 +52,15 @@ public class LauncherFrame extends JFrame {
 		addComponents();
 	}
 
+	static void start() {
+		 EventQueue.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new LauncherFrame();
+            }
+        });
+	}
+
 	private void addComponents() {
 		JButton startButton = new MyButton("Start game");
 		startButton.setLocation(640 / 2 - 100, 480 / 2 + 40);
