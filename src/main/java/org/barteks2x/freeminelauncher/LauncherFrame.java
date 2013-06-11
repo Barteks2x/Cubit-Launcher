@@ -4,12 +4,13 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import javax.imageio.ImageIO;
 import javax.imageio.stream.ImageInputStream;
 import javax.swing.*;
@@ -18,6 +19,9 @@ import javax.swing.GroupLayout.Alignment;
 public class LauncherFrame extends JFrame {
 
 	JPanel background;
+	private int build = 12;
+	JTextField buildF;
+	JCheckBox update;
 	private static String OS = System.getProperty("os.name").toLowerCase();
 	private String fastpng = "https://dl.dropboxusercontent.com/u/54602353/fastpng-1.0.jar",
 			jinputjar = "https://dl.dropboxusercontent.com/u/54602353/jinput-2.0.5.jar",
@@ -53,12 +57,12 @@ public class LauncherFrame extends JFrame {
 	}
 
 	static void start() {
-		 EventQueue.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new LauncherFrame();
-            }
-        });
+		EventQueue.invokeLater(new Runnable() {
+			@Override
+			public void run() {
+				new LauncherFrame();
+			}
+		});
 	}
 
 	private void addComponents() {
@@ -87,6 +91,29 @@ public class LauncherFrame extends JFrame {
 		pass.setSize(nick.getSize());
 		pass.setLocation(640 / 2 - 100, 480 / 2 - 15);
 		background.add(pass);
+
+		buildF = new JTextField();
+		buildF.setText(String.valueOf(build));
+		buildF.setLocation(startButton.getLocation().x + 210, startButton.getLocation().y - 23);
+		buildF.setSize(startButton.getSize().height, startButton.getSize().height);
+		background.add(buildF);
+
+		JLabel buildText = new JLabel();
+		buildText.setText("Build");
+		buildText.setLocation(startButton.getLocation().x + 210 + 5 + startButton.getSize().height,
+							  startButton.getLocation().y - 23);
+		buildText.setSize(150, 16);
+		buildText.setOpaque(false);
+		buildText.setForeground(Color.white);
+		background.add(buildText);
+
+		update = new JCheckBox();
+		update.setLocation(startButton.getLocation().x + 210, startButton.getLocation().y + 3);
+		update.setText("Update");
+		update.setSize(150, 16);
+		update.setOpaque(false);
+		update.setForeground(Color.white);
+		background.add(update);
 	}
 
 	private void setBackground() {
@@ -106,6 +133,9 @@ public class LauncherFrame extends JFrame {
 
 		@Override
 		public void actionPerformed(ActionEvent ae) {
+			if(update.isSelected()){
+				new File("FREEMine").delete();
+			}
 			FileDownloader d = new FileDownloader("FREEMine");
 			try {
 				d.download(new URL(fastpng));
@@ -137,13 +167,29 @@ public class LauncherFrame extends JFrame {
 					d2.download(new URL(lwjglosx));
 					d2.download(new URL(oalosx));
 				}
+				build = Integer.parseInt(buildF.getText());
 				d.download(new URL(
-						"https://buildhive.cloudbees.com/view/All/job/Barteks2x/job/FREEMine/lastStableBuild/org.Barteks2x$FREEMine/artifact/org.Barteks2x/FREEMine/0.0.0-pre-alpha/FREEMine-0.0.0-pre-alpha.jar"),
-						   "FREEMine.jar");
-				File f = new File("FREEMine" + File.separator + "native"+File.separator);
-				File fr = new File("FREEMine" + File.separator + "FREEMine.jar");
+						"https://buildhive.cloudbees.com/job/Barteks2x/job/FREEMine/" + build +
+						"/org.Barteks2x$FREEMine/artifact/*zip*/archive.zip"),
+						   "FREEMine.zip");
+				File f = new File("FREEMine" + File.separator + "native" + File.separator);
+				File fr = new File("FREEMine" + File.separator + "FREEMine.zip");
+				File fmjar = new File("FREEMine" + File.separator + "FREEMine.jar");
+				extractZipNative(fr, new File(d.directory));
 				File dir = new File("FREEMine");
-				ProcessBuilder b = new ProcessBuilder("java", "-Djava.library.path=" + f.getAbsolutePath(), "-jar", fr.getAbsolutePath());
+				File archivedir1 = new File("FREEMine/archive/org.Barteks2x/FREEMine/");
+				File[] adirs = archivedir1.listFiles();
+				File[] files = adirs[0].listFiles();
+				File jarFile = null;
+				for (File cf : files) {
+					if (cf.getName().contains(".jar")) {
+						jarFile = cf;
+						break;
+					}
+				}
+				jarFile.renameTo(fmjar);
+				ProcessBuilder b = new ProcessBuilder("java", "-Djava.library.path=" + f.getAbsolutePath(),
+													  "-jar", fmjar.getAbsolutePath());
 				b.directory(dir);
 				b.redirectErrorStream(true);
 				b.redirectOutput(new File("log.txt"));
@@ -152,6 +198,9 @@ public class LauncherFrame extends JFrame {
 				Logger.getLogger(LauncherFrame.class.getName()).log(Level.SEVERE, null, ex);
 			} catch (IOException ex) {
 				Logger.getLogger(LauncherFrame.class.getName()).log(Level.SEVERE, null, ex);
+			} catch (Exception ex) {
+				Logger.getLogger(LauncherFrame.class.getName()).log(Level.SEVERE, null, ex);
+
 			}
 		}
 	}
@@ -178,5 +227,53 @@ public class LauncherFrame extends JFrame {
 
 		return (OS.indexOf("sunos") >= 0);
 
+	}
+
+	public void extractZipNative(File fileZip, File directory) {
+		try {
+			byte[] buf = new byte[1024];
+			ZipInputStream zipinputstream = null;
+			ZipEntry zipentry;
+			zipinputstream = new ZipInputStream(
+					new FileInputStream(fileZip));
+
+			zipentry = zipinputstream.getNextEntry();
+			while (zipentry != null) {
+				String entryName = zipentry.getName();
+				System.out.println("entryname " + entryName);
+				int n;
+				FileOutputStream fileoutputstream = null;
+				File newFile = new File(directory.getPath() + File.separator + entryName);
+
+				if (newFile.isDirectory()) {
+					zipinputstream.closeEntry();
+					zipentry = zipinputstream.getNextEntry();
+					continue;
+				}
+				newFile.mkdirs();
+				newFile.createNewFile();
+				try {
+					fileoutputstream = new FileOutputStream(newFile);
+				} catch (Exception e) {
+					zipinputstream.closeEntry();
+					zipentry = zipinputstream.getNextEntry();
+					continue;
+				}
+
+
+				while ((n = zipinputstream.read(buf, 0, 1024)) > -1) {
+					fileoutputstream.write(buf, 0, n);
+				}
+
+				fileoutputstream.close();
+				zipinputstream.closeEntry();
+				zipentry = zipinputstream.getNextEntry();
+
+			}
+
+			zipinputstream.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }

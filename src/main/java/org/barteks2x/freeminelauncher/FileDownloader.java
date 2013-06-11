@@ -9,7 +9,7 @@ import java.util.logging.Logger;
 public class FileDownloader {
 
 	protected final int size = 1024;
-	protected String directory;
+	public String directory;
 
 	public FileDownloader(String directory) {
 		this.directory = directory;
@@ -19,6 +19,9 @@ public class FileDownloader {
 	}
 
 	public void download(URL url, String localFileName) {
+		if(new File(directory+File.separator+localFileName).exists()){
+			return;
+		}
 		OutputStream outStream = null;
 		URLConnection uCon;
 
